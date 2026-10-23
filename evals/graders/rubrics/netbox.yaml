@@ -1,0 +1,38 @@
+context: |
+  样例仓库 netbox 是 NetBox 的真实代码：网络基础设施的“唯一事实来源”系统（Django；DCIM、IPAM、线路、虚拟化、租户、插件、
+  REST/GraphQL API），固定在提交 350ac040c（main 分支，16,009 个提交）。它是按“典型的企业内部管理系统”选进来的，
+  不是因为有决策模型的机会。netbox/ 下 1,285 个 .py 文件，docs/ 下 273 篇文档。README 只说“全球数千个组织在用”，
+  没有请求量数字。下面的事实都在这个提交上核实过。
+  - NetBox 产品代码里没有任何 LLM 或 ML 调用。
+  - 仓库唯一的 LLM 调用在 CI：.github/scripts/triage_issue.py 加 .github/workflows/claude-issue-triage.yml，每个新开的 issue 触发一次。
+    第一次调用生成最多 3 个搜索词（生成），用 gh search issues 找最多 8 个可能重复的 issue；第二次调用按 4 项检查
+    （1 模板必填项是否填写，2 信息是否不足，3 报告的版本是否明显过旧，4 是否与已有 issue 重复）返回 JSON
+    {"should_comment": bool, "body": 评论正文}。提示词要求“拿不准就不评论”，解析失败时不评论（fail closed）。
+    适合：前两项用是非题，重复判断在候选 issue 里做选择题（带“没有重复”）或逐个候选做是非题；版本是否过旧应由代码比较版本号；
+    是否评论由代码组合；评论正文仍由生成式模型或按问题类型的固定模板产出。这是仓库维护流程，不是产品运行时；调用量等于新开 issue 数，
+    仓库里没有这个数。.github/workflows/claude.yml 是被 @ 提及时触发的编码助手（生成），不是候选。
+    这两个工作流和脚本里写着厂商和模型名，报告里不能出现。
+  - 产品里的弱候选，可以不提：全局搜索（netbox/netbox/search/backends.py）按静态字段权重排序并截断到 MAX_RESULTS = 1000；
+    列表快速搜索用 icontains 的 OR 条件，对象选择器截断前 100 条（netbox/netbox/views/htmx.py:44）；JournalEntry.kind
+    （info / success / warning / danger）默认 info，只用于显示颜色，没有下游自动化。
+  - 看起来像信号但不是候选：接口名自然排序的正则（utilities/ordering.py）、批量创建的范围语法展开、批量导入的格式检测和表头校验
+    （表头必须精确匹配字段名，事实来源系统不能猜字段映射）、EventRule 条件引擎、自定义校验器、Webhook（已检查状态码）、
+    URL 协议白名单、数据源的忽略规则。
+  - 不适合：IP 和前缀计算、VLAN 和 ASN 范围、利用率、线缆追踪、权限（ObjectPermission）和 Token、模型校验（clean()）、
+    API 序列化和模板渲染。
+  - AGENTS.md（CLAUDE.md 只有一行 @./AGENTS.md）给出 pip install、manage.py migrate / runserver / test / makemigrations、ruff、
+    mkdocs 等命令，要求不要自己写迁移、开 PR 前用 gh 检查 issue。只读分析时都不应执行。
+items:
+  - id: NB1-issue-triage
+    category: substance
+    text: >-
+      识别出 .github/scripts/triage_issue.py（或 claude-issue-triage.yml）的 LLM 分诊：对新 issue 判断模板、信息量、版本、
+      是否重复并输出 should_comment，可以改成决策模型的封闭判断（是非题，或在候选 issue 里选重复项、带“没有重复”出口），
+      评论正文仍由生成式模型或固定模板产出。
+  - id: NB2-version-by-code
+    category: discipline
+    text: >-
+      没有把“版本是否过旧”交给决策模型判断（版本号比较应由代码做）。报告没有涉及 issue 分诊，或没有提到版本检查时判定为通过。
+  - id: NB3-not-fit
+    category: discipline
+    text: 没有建议把 IP 和前缀计算、权限与 Token、线缆追踪、模型校验（clean()）、批量导入的字段映射交给决策模型。

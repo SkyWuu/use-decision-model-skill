@@ -1,0 +1,49 @@
+context: |
+  样例仓库 wikipedia-ios 是 Wikipedia 官方 iOS App 的真实代码，固定在提交 2407d77c3b（main 分支，47,628 个提交，完整历史）。
+  它是按“典型的 iOS 客户端”选进来的，不是因为有决策模型的机会。Swift 约 1,460 个文件，Objective-C 426 个（.h 218、.m 208）；
+  主要目录：WMFData（数据层）、WMFComponents（SwiftUI 组件和 ViewModel）、WMF Framework（旧的共享库）、Wikipedia/Code（主 App）。
+  仓库里没有任何用户量、请求量文档。下面的事实都在这个提交上核实过。
+  - 端上没有 LLM 调用。唯一的端侧模型是 Apple Vision 的人脸检测（WMFComponents 下的 Utility/WMFFaceDetectionCache.swift），
+    用来裁剪缩略图，是现成的视觉模型。词条主题（服务端 ORES 给出的 WMFPageTopic，带 score，客户端只做去重和取前 5）、语义搜索、
+    相关词条（morelike:）、配图建议（hasrecommendation:image）都由服务端算好，客户端只消费结果。
+  - 可以接受的候选。证据都偏弱：没有误判修复记录，也没有调用量数据。
+    1. Wikipedia/Code/WMFFeedOnThisDayEvent.m:50-86：“历史上的今天”头条事件的打分只对英文站生效，用一条死亡、暴力关键词正则
+       （enDeathRegex）数命中次数，score = 图片数 × 0.2 − 命中次数；注释写明这是让头条“不那么满是死亡”的实验性做法，
+       其他语言只按图片数打分。Wikipedia/Code/WMFOnThisDayContentSource.m:96-106 按分数排序，再用 (year % 10) 在前 10 名里轮换。
+       适合换成对事件文本的是非题或等级题（是否以死亡、暴力、灾难为主），也能覆盖非英文站；同一天同一语言的所有用户看到同一组
+       事件，可以每个事件判断一次后复用。相关提交 cacb0fdf5c、31e5840c73、acb5eee722 都是功能提交，不是误判修复。
+    2. Wikipedia/Code/Controllers/ArticleDescriptionControlling.swift:43-49（descriptionIsUppercase）：非英文站编辑词条简短描述时，
+       只要首字母大写就提示“只有专有名词才大写”（DescriptionEditViewController.swift 每次输入都检查），不判断首词是不是专有名词。
+       可以用是非题判断首词是否为专有名词，判断应放在输入停顿后或提交前。提交 28df0a29dd 引入这个警告。
+    3. WMFData 下的 Activity Tab/WMFActivityTabDataController.swift:236-246：本月热门分类本来已按阅读次数排好（fetchTopCategories），
+       getTopCategories 又按分类名的字符串长度重排后取前 3（.sorted { $0.count > $1.count }），看起来是 bug；年度回顾的分类页
+       （WMFYearInReviewMostReadCategoriesSlideDataController.swift:32-48）用“分类名至少含两个下划线”过滤宽泛分类，提交 e62e671deb、
+       42c3d01664。判断“分类是否是读者能看懂的话题、不是维护性分类”可以是是非题；改用服务端已有的词条主题也合理。
+    4. WMFData 下的 Games/WMFGamesDataController.swift:369-379：每日问答游戏用正则 \b\d{1,4}\b 去掉文本里含数字的事件，防止泄露年份，
+       会误杀 “Apollo 11” 这类事件。弱候选。
+  - 有记录的有意设计：WMFHomeDataController.swift 的 For You 推荐每天随机挑种子、打乱候选，再按固定卡片槽位排版；注释写明是为了
+    每天都有新内容（:297-298，以及 :584 的 T427675 “Ensure freshness”）。
+  - 看起来像信号但不是候选：WMFWikitextUtils、HTMLUtils、ShortDescriptionController 里解析 wikitext 和 HTML 标记的正则；
+    通知中心的签名锚点和 Q 号正则；语言代码映射；SearchResultsLoader 结果不足 12 条时补全文搜索；配图建议取 .first
+    （服务端每页只给一条）。
+  - 不适合：登录与账号、验证码、捐赠和募捐（Donor Experience、DonateCoordinator）、网络缓存与阅读列表同步、渲染和 WebView 桥接、
+    埋点和 A/B 分桶。
+  - AGENTS.md 和 CLAUDE.md 都是指向 .github/copilot-instructions.md 的符号链接，内容是架构和代码风格说明，其中 “Build and Test”
+    一节给了 xcodebuild 构建和测试命令；.claude/skills/ 里有 gh、xcrun simctl、xcodebuild test 等命令。只读分析时都不应执行。
+items:
+  - id: WI1-on-this-day
+    category: substance
+    text: >-
+      识别出“历史上的今天”头条事件用英文死亡关键词正则打分（WMFFeedOnThisDayEvent.m 或 WMFOnThisDayContentSource.m），
+      并建议用决策模型对事件文本做是非题或等级题。放在“信息不足”一节、写明待确认也算。
+  - id: WI2-grounded
+    category: discipline
+    text: >-
+      每条建议都建立在上文的事实上：没有声称 App 里已有 LLM 调用或文本分类模型；没有把服务端已经做好的判断
+      （词条主题、语义搜索、相关词条、配图建议）说成客户端里的规则；提到 For You 推荐的随机抽样时，保留了每天换新内容的目的
+      （例如只在随机候选里过滤或排序），没有改成由模型固定挑“最好”的内容。报告没有列出任何建议时判定为通过。
+  - id: WI3-not-fit
+    category: discipline
+    text: >-
+      没有建议把登录与账号、验证码、捐赠和支付、缓存与同步、渲染、埋点和 A/B 分桶交给决策模型，
+      也没有把 wikitext、HTML 标记或语言代码的解析当成语义判断来建议。

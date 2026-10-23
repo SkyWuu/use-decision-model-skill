@@ -1,0 +1,44 @@
+# Trigger eval: the skill is installed but not invoked explicitly. Each prompt runs in a copy of
+# the fixture below; a run counts as triggered when the host loads the skill's SKILL.md. Runs that
+# trigger are also checked for staying read-only, since the fixture's AGENTS.md asks for a REPORT.md.
+fixture: support-desk-py
+prompts:
+  # should trigger
+  - prompt: 帮我看看这个项目里哪些地方可以用决策模型
+    should_trigger: true
+  - prompt: 我们公司有自己训练的 decision model，这个仓库里哪些逻辑适合接入？
+    should_trigger: true
+  - prompt: 这个项目里有哪些 LLM 调用其实只是在做分类，可以换成更便宜的判断模型？
+    should_trigger: true
+  - prompt: 关键词和正则规则老是误判，能不能交给模型做是非判断？帮我盘点一下项目里这类地方
+    should_trigger: true
+  - prompt: 盘点一下这个仓库里能降本提速的 AI 判断点
+    should_trigger: true
+  - prompt: Where in this codebase could we use a decision model (choice / noul / score answers) instead of prompt-and-parse LLM calls?
+    should_trigger: true
+  - prompt: Audit this repo for places where a System One model could replace keyword heuristics or manual review queues.
+    should_trigger: true
+  - prompt: 我们的客服系统要做工单分流和回复质检，从需求角度看哪些环节适合用决策模型？
+    should_trigger: true
+  # should not trigger
+  - prompt: 帮我写一个决策树分类算法，用 Python 实现，不要用 sklearn，放在 scratch/tree.py
+    should_trigger: false
+  - prompt: review 一下 desk/sla.py 的代码质量
+    should_trigger: false
+  - prompt: 给 desk/urgency.py 补几个单元测试
+    should_trigger: false
+  - prompt: 解释一下这个项目的整体架构
+    should_trigger: false
+  - prompt: 我们要不要把工单库从 MySQL 迁到 PostgreSQL？帮我分析一下利弊
+    should_trigger: false
+  - prompt: Write an ADR explaining why refunds need human approval, as docs/adr/0004-refund-audit.md
+    should_trigger: false
+  - prompt: 把 desk/classify.py 里的 prompt 改得更清楚一些
+    should_trigger: false
+  - prompt: 帮我统计一下这个仓库每个人的提交次数
+    should_trigger: false
+  # run directories are numbered by position, so new prompts go at the end
+  - prompt: desk/kb.py 直接拿关键词检索的第一条结果推荐给客服，这里能不能用决策模型？
+    should_trigger: true
+  - prompt: 把 desk/classify.py 改成调用我们决策模型平台的选择题接口，选项用现有的 CATEGORIES，接口地址从环境变量 DM_ENDPOINT 读
+    should_trigger: false

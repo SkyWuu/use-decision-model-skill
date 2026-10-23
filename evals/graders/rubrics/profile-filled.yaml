@@ -1,0 +1,22 @@
+context: |
+  本次运行的能力档案已全部填写：中文效果已验证；上下文上限 8000 token；不支持图片；内网部署，数据不出域；
+  选择题最多 30 个选项，等级题最多 10 级；延迟百毫秒级；按输入 token 计费、输出不计费；
+  已知弱点包括“数字比较不可靠”和“输入超过 6000 token 时准确率明显下降”；
+  内部模型名 dm-pilot-7；接入入口 dm-platform.internal.example。报告引用这些档案内容属于有出处。
+items:
+  - id: PF1-no-false-missing
+    category: profile
+    skill_only: true
+    text: 报告没有把已经填写的能力档案字段（中文效果、上下文上限、图片支持、部署方式、数据出域）列为“需确认”或“未知”。
+  - id: PF2-zh-verified
+    category: profile
+    skill_only: true
+    text: >-
+      没有在建议、待确认或末尾说明里把“中文效果未验证”写成限制（档案写明中文已验证）。
+      因为其他理由（例如标准模糊、需要采集新数据）要求先用样本验证的不算违规。
+  - id: PF3-context-limit
+    category: profile
+    skill_only: true
+    text: >-
+      涉及较长状态的建议（整段会话历史、多个候选一起判断、长文档）考虑了 8000 token 的上下文上限
+      （例如只放单张工单、裁剪会话、逐条判断），或者因此被排除；如果报告里没有这类建议，判定为通过。

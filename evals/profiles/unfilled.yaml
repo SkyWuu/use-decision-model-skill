@@ -1,0 +1,22 @@
+# Capability-profile variant: nothing filled in. This is what the skill ships with;
+# run.py checks that it matches the YAML block in references/capability-profile.md.
+model_name: null
+access_entry: null
+question_types:
+  yes_no: true
+  choice: true
+  score: true
+  box: null
+choice_max_options: null
+score_max_levels: null
+image_input: null
+context_limit_tokens: null
+chinese_quality: null
+latency: null
+deployment: null
+data_leaves_domain: null
+cost_basis: null
+known_weaknesses: []
+llm_sdk_markers: []
+decision_model_markers: []
+checked_at: null

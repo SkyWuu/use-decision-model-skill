@@ -1,0 +1,64 @@
+context: |
+  样例仓库 bigquery-etl 是 Mozilla 数据仓库的真实生产 ETL 仓库，固定在提交 f88ca0bff（main 分支，9,295 个提交）。
+  它是按“典型的数据工程仓库”选进来的，不是因为有决策模型的机会。共 8,413 个文件：SQL 2,498 个、YAML 约 4,850 个、Python 470 个；
+  dags.yaml 定义 160 个 Airflow DAG。仓库没有每日行数或查询总量的文档。下面的事实都在这个提交上核实过。
+  - 已有的 LLM 调用。仓库里写着具体的厂商和模型名，报告里不能出现。
+    1. bigquery_etl/data_governance/classification/（models.py、prompt.py、runner.py、taxonomy_v1.json）：对每个 BigQuery 列调用一次
+       生成式模型，返回 JSON：primary_label、secondary_labels、confidence（high / medium / low）、reasoning、needs_review。
+       分类体系 taxonomy_v1.json 有 133 个标签，分三层（6 个 subject、79 个 subcategory、48 个 data_type），提示词要求选
+       “最具体的一个标签”；runner.py:176-192 在模型返回体系外的标签时强制 needs_review = True。结果写入
+       data_governance_metadata_derived.column_classifications_v1。由 ./bqetl data_governance classify 触发，增量跳过已分类的列。
+       只有 1 个提交 0dc0c414f。适合：从分类体系里选标签（选项超过 20 个，应分层选择：先选大类再选小类），用概率决定是否人工复核；
+       reasoning 这类文字说明不必要，或只对少数样本另外生成。
+    2. 六个检索索引查询里的 AI.GENERATE（customer_experience_derived 下的 zendesk_、kitsune_、knowledge_base_retrieval_index_v1，
+       market_intel_derived 下的 market_research_blogs_、releases_、jobs_retrieval_index_v1，各自的 query.sql）：一次调用同时生成摘要、
+       实体和话题列表、一个自由形式的类别标签（“exactly 1 reusable classification label, preferably 1 word”）、语言标签（BCP 47）；
+       客服的两张表还有情感分数（-1 到 1，越界时置空并记入 failure_reasons）。客服三张表的 DAG bqetl_customer_experience 每天一次
+       （0 2 * * *），市场情报三张表的 bqetl_market_research 每周一次（0 15 * * 2）。适合：把类别（先定成固定选项）、情感等级、
+       语言这些封闭的部分拆出来交给决策模型，摘要和实体仍由生成式模型做。
+    3. github_derived/pr_embeddings_v1/query.py 只生成向量；external_derived/market_intel_bot_v1/query.py 生成月报文字，且已标记
+       deprecated。都不是候选。
+  - 没有用模型、但在近似语义判断的规则：
+    4. sql/mozfun/google_search_console/classify_site_query/udf.sql：把 Google 搜索词分成 Firefox Brand、Pocket Brand、
+       Mozilla Brand、Non-Brand（查询为空时为 Anonymized，Discover 和 Google News 返回 NULL），靠 3 个 REGEXP_CONTAINS，
+       每个都是一长串多语言拼写错误、音译和变体。4 个提交，其中 7871d0be8（DS-3756）专门补品牌词模式。被 google_search_console
+       下 4 个视图调用，上游 DAG bqetl_google_search_console 每天一次（0 8 * * *）。适合选择题（带 Non-Brand），在去重后的查询词上
+       判断一次、存成字段，而不是在视图里逐行实时调用。
+    5. sql/moz-fx-data-shared-prod/data_governance_metadata_derived/column_profiles_v1/query.py 的 is_pii_column：字段名精确匹配
+       22 个词或以 email 结尾就判为个人信息、跳过采样；注释写明“宁可漏判也不误判”“只是第一道过滤”；提交 bd3161ee5 修过驼峰和
+       复合字段名的漏判。DAG 每周一运行（0 4 * * 1）。这是隐私边界：模型只能多标记个人信息列，不能把词表判定的列放行。
+    6. sql/moz-fx-data-experiments/monitoring/jetstream_analysis_errors/view.sql:43-91：用 CASE 和 6 条 LIKE 把日志归入 8 类加
+       uncategorized，只有 1 个提交，弱候选。
+  - 看起来像信号但不是候选：customer_experience 下的 classify_appbot_group、is_automated（输入是工单标签数组）、normalize_product
+    和 sumo.map_product_slug（URL 路径和枚举映射）、conversion_event_categorization（数值阈值）、User-Agent 爬虫正则、
+    操作系统和版本号解析、广告系列名解析。
+  - 不适合：指标聚合与留存位运算、按 document_id 去重、shredder 删除、分区和日期逻辑、Schema 与 dry-run 校验、SQL 格式化、
+    sensitivity.py 的读权限与敏感数据流检查、DAG 生成与部署、生成 SQL 本身。
+  - AGENTS.md（CLAUDE.md 只有一行 @AGENTS.md）列出 ./bqetl query validate、format、generate、pytest 等命令，规定只能在 dev 目标上
+    运行、部署和回填；bigquery_etl/util/common.py 还有拦截编码 agent 的 block_coding_agents。只读分析时都不应执行。
+items:
+  - id: BQ1-column-classifier
+    category: substance
+    text: >-
+      识别出 data_governance/classification 的列分类（生成式模型逐列输出主标签、置信度和 needs_review）可以改成决策模型：
+      从分类体系里选标签，用概率决定是否需要人工复核。写到选项多、要分层选择（先选大类再选小类）更好，但不要求。
+  - id: BQ2-brand-query
+    category: substance
+    text: >-
+      识别出 google_search_console/classify_site_query/udf.sql 用一长串多语言正则判断搜索词是不是 Firefox、Pocket、Mozilla 品牌词，
+      并建议改成决策模型的封闭判断：选择题（带 Non-Brand 或“无法判断”出口），或逐个品牌做是非题、都答否即为 Non-Brand。
+  - id: BQ3-split-generate
+    category: substance
+    text: >-
+      针对检索索引查询里的 AI.GENERATE（客服工单、论坛问题、知识库或市场情报任一张表即可），建议把类别、情感、语言这类封闭的部分
+      拆出来交给决策模型，摘要和实体仍由生成式模型做。
+  - id: BQ4-pii-add-only
+    category: discipline
+    text: >-
+      如果建议用决策模型改进 column_profiles_v1 的个人信息列判断，写明了模型只能多标记个人信息列（作为额外信号），
+      不能放行词表已经判定的列。没有提这一点时判定为通过。
+  - id: BQ5-not-fit
+    category: discipline
+    text: >-
+      没有建议把指标聚合、去重、分区和日期逻辑、Schema 或 dry-run 校验、SQL 格式化、权限和敏感数据流检查、DAG 生成和部署
+      交给决策模型，也没有建议用决策模型生成 SQL。

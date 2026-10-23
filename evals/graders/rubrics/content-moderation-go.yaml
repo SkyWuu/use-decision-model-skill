@@ -1,0 +1,55 @@
+context: |
+  样例仓库 content-moderation-go 是一个社区内容平台后端（Go）。埋点如下：
+  - internal/moderation/banned.go：两部分。regulatedWords（来自 regulated_words.txt）是监管违禁词，精确匹配拦截；
+    spamPatterns 是识别引流、广告的正则，git 里有 3 次修复（49629f6 误杀“加微信支付”、19879c6 漏杀谐音“加薇信”“+V”、
+    aa97a3c 误杀显卡型号“vx 5000”），banned_test.go 里还有已知误杀和漏杀。
+    docs/adr/0002 规定监管违禁词必须用确定性规则拦截、不经过任何模型；引流广告判断不在该限制内，可以替换。
+    正确做法：spamPatterns 可以交给决策模型（替换），regulatedWords 必须保留。
+  - internal/dedup/dedup.go：余弦相似度大于阈值即判重并合并；阈值被反复调整 0.90 → 0.85 → 0.88 → 0.85（92fc5fe、325960e、eed7caa）。
+    eed7caa 的提交正文写了“误合并的问题先由运营手工拆分”。适合改成是非题或“合并 / 人工复核 / 不同”的等级题，相似度可以留作预筛。
+  - internal/feed/rank.go：召回 50 条，只保留召回分最高的 20 条，再按时间倒序，所有用户同一套规则。属于“增强”机会。
+  - internal/review/sampler.go：已通过机审的评论按 5% 随机抽检（0186eb1 定为 2%，6685a39 调到 5%，提交正文写了
+    “上月用户举报的漏放评论里，大部分没有被抽到，审核员人手允许多看一些”）。适合改为全量判断、把不确定的交给人工，抽检保留作基准。
+    每条评论都会经过 moderation.Moderate()，所以对每条评论都做的引流判断，它的概率可以直接拿来挑送审评论。
+  - internal/moderation/banned_test.go 有 9 条用例，其中注明“已知误杀”和“已知漏杀”的各 1 条。
+  - internal/billing/price.go：推广计费算术，不适合。internal/auth/permission.go：角色权限检查，不适合。
+  - config/jobs.yaml：feed_rank 每 10 分钟一批、每批 500 个用户；dedup_scan 每小时一次，扫描最近 2000 篇新帖。仓库里没有代码读取
+    这个文件，README 说明它是定时任务的配置，所以只能当处理量上限：feed_rank 每天最多 144 批 × 500 = 72,000 次用户信息流重算；
+    dedup_scan 的 2000 篇是每次扫描的窗口，不是每小时新帖数，2000 × 24 = 48,000 只是每天扫描的帖子次数上限，推不出新帖量。
+    评论量没有任何出处。
+items:
+  - id: CM1-spam-regex
+    category: substance
+    text: >-
+      识别出 banned.go 里识别引流、广告的正则（spamPatterns）可以交给决策模型判断，并引用了相关修复记录
+      （提交号或具体的误杀、漏杀事件）。
+  - id: CM2-keep-regulated
+    category: discipline
+    text: >-
+      遵守 ADR 0002：没有建议用决策模型替代监管违禁词（regulatedWords / regulated_words.txt）的精确匹配；
+      如果提到它，是保留它作为底线。
+  - id: CM3-dedup
+    category: substance
+    text: 识别出 dedup.go 用余弦相似度阈值判重的问题，建议用决策模型判断两篇帖子是否重复（是非题或分级处理均可）。
+  - id: CM4-feed-topk
+    category: substance
+    text: >-
+      识别出 rank.go 只按召回分（热度）固定截取前 20 条、再按时间排序的问题，并提出用决策模型对候选逐条判断来改进截断或排序
+      （逐条判断相关度、质量等均可；在内容写入时判断一次、存成字段再由代码组合也算）。
+  - id: CM5-sampling
+    category: substance
+    text: >-
+      识别出 sampler.go 5% 随机抽检的问题，建议对评论全量判断，把高风险或拿不准的交给人工复核（随机抽检可保留作基准）。
+      复用对每条评论都会做的判断（例如引流判断）的概率来挑送审评论，也算全量判断。
+  - id: CM6-not-fit
+    category: discipline
+    text: 没有建议把 price.go 的计费计算或 permission.go 的权限检查本身交给决策模型。
+  - id: CM7-volume
+    category: discipline
+    text: >-
+      提到调用量时，或者从 config/jobs.yaml 推导并写成上限（例如 feed_rank 每 10 分钟最多 500 个用户），或者明确标为未知；
+      没有把 dedup_scan 每次扫描的 2000 篇当成新帖量（例如写“每天新帖最多 48,000 篇”算不通过）；评论量没有出处时没有写具体数字，
+      没有编造流量数字。报告没有提调用量时判定为通过。
+  - id: CM8-three-families
+    category: substance
+    text: 建议同时覆盖替换（已有规则或阈值）、增强（固定 top-k、抽样）和新能力（今天没有做的判断）三类机会。看内容，不要求名称。

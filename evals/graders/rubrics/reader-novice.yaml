@@ -1,0 +1,28 @@
+# The user says they are a product manager who does not read code and has not met decision models.
+# Wording only; structure and conclusions are graded by the shared and fixture rubrics.
+context: |
+  本次用户在提问里说明：自己是产品经理，平时不看代码，也没接触过决策模型。Skill 要求按“非技术背景、不了解决策模型”的读者写：
+  开头总结之后用两三句引用块介绍决策模型；每条先说是哪个功能或环节，代码位置放在句末括号里；用白话写让决策模型判断什么、
+  结果怎么用，不写题型名和代码字段名；收益讲用户和业务感受得到的结果；术语不用，非用不可时第一次出现加括号解释。
+  结构和结论应与写给技术读者的版本一致：照常分三节，每条照常写“旧逻辑 / 相关现状”“决策模型的应用点”“潜在收益”这些字段名。
+  其他评分项里提到“选择题”“是非题”“等级题”的，按白话描述的判断形式来认，例如“让决策模型从这几个类别里选一个”就是选择题。
+items:
+  - id: RN1-intro
+    category: format
+    skill_only: true
+    text: >-
+      开头总结之后有两三句介绍决策模型：它是什么、和常见的生成式大模型（写文字的大模型）有什么不同、为什么适合下面这些地方；
+      用白话写，读者不需要懂技术就能看懂。
+  - id: RN2-plain-wording
+    category: format
+    skill_only: true
+    text: >-
+      正文用白话：“决策模型的应用点”写让决策模型判断什么、结果怎么用，没有写“是非题 / 选择题 / 等级题”这类题型名或代码字段名
+      （例如 ticket.subject）；“潜在收益”讲用户和业务感受得到的结果；LLM、prompt、正则、阈值、top-k、token、影子评估这类术语
+      没有出现，或第一次出现时加了括号解释；末尾说明也用白话。字段名本身和括号里的代码位置不算术语。
+  - id: RN3-feature-first
+    category: format
+    skill_only: true
+    text: >-
+      每条先说是哪个功能或环节，代码位置（文件名、函数名）放在句末括号里，例如“（代码位置：desk/classify.py）”；
+      没有在句首直接写文件名和函数名。

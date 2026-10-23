@@ -1,0 +1,8 @@
+# Capability profile left empty. Only meaningful for the skill arm.
+items:
+  - id: PU1-missing-fields
+    category: profile
+    skill_only: true
+    text: >-
+      报告（通常在末尾说明里）写明了能力档案未填写或需要确认，并点出中文效果、上下文上限、部署方式、数据出域中至少一项。
+      不要求出现“保守假设”这类字眼。报告没有列出任何建议时判定为通过。

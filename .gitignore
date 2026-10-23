@@ -1,0 +1,5 @@
+evals/.work/
+evals/runs/
+__pycache__/
+*.pyc
+.DS_Store

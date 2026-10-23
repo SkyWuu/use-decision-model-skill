@@ -1,0 +1,22 @@
+# Capability-profile variant: everything filled in, Chinese verified, 8K context, no images, intranet.
+# run.py splices this block into the skill's references/capability-profile.md for the run.
+model_name: "dm-pilot-7"
+access_entry: "内部决策模型平台 → 接入指南（https://dm-platform.internal.example/docs/quickstart）"
+question_types:
+  yes_no: true
+  choice: true
+  score: true
+  box: false
+choice_max_options: 30
+score_max_levels: 10
+image_input: false
+context_limit_tokens: 8000
+chinese_quality: "已验证：平台在中文客服工单和内容审核评测集上与人工标注一致率达到上线标准（2026-10 评测报告）"
+latency: "百毫秒级（2026-10 平台压测报告）"
+deployment: "内网部署"
+data_leaves_domain: false
+cost_basis: "按输入 token 计费，输出不计费"
+known_weaknesses: ["数字比较不可靠", "输入超过 6000 token 时准确率明显下降"]
+llm_sdk_markers: ["llm-gateway.internal.example", "/v1/chat/completions"]
+decision_model_markers: ["dm-platform", "/v1/decide"]
+checked_at: "2026-10-20"

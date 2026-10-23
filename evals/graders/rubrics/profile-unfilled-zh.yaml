@@ -1,0 +1,9 @@
+# Capability profile left empty, Chinese-input fixture. Only meaningful for the skill arm.
+items:
+  - id: PU2-zh-pilot
+    category: profile
+    skill_only: true
+    text: >-
+      因为能力档案没有写明中文效果，报告写明了中文效果未验证（或需要确认），并要求以中文输入为主的建议上线前先用真实样本评估
+      （写在末尾说明、某条建议或待确认里都算）。这个仓库的输入以中文为主，写“真实样本”“脱敏的真实样本”即可，
+      不要求出现“中文样本”四个字；只写了中文效果需确认、没有要求先用样本评估的，判定为不通过。

@@ -1,0 +1,49 @@
+context: |
+  样例仓库 govuk-infrastructure 是 GOV.UK 平台的真实基础设施代码（Terraform、Helm 和 Kubernetes YAML、GitHub Actions），
+  固定在提交 f8b61231（main 分支，9,157 个提交）。它是按“典型的运维和基础设施仓库”选进来的，不是因为有决策模型的机会。
+  共 842 个文件：.tf 405 个、.tfvars 78 个，另有 YAML、工作流和少量脚本。仓库没有站点流量文档，只有局部数字，例如 ADR 0014
+  写有 93 个 Terraform workspace，terraform/deployments/datagovuk-infrastructure/wafs.tf:388 的限流是每个 User-Agent 每 5 分钟
+  100 次请求。下面的事实都在这个提交上核实过。
+  - 仓库里没有发起 LLM 调用的代码，只为别的应用配置模型服务：给 govuk-chat 等应用调用托管模型的 IAM 权限、调用日志和
+    Token 用量告警（terraform/deployments/chat/ 下，文件里写着厂商和模型 ID，报告里不能出现）、搜索服务的托管检索引擎配置
+    （search-api-v2）、敏感信息脱敏的远程函数（gcp-gov-graph）。这些模型调用和判断发生在别的应用仓库里。
+  - 搜索服务 search-api-v2 的配置里有两处真正的语义判断，是这个仓库里最明确的候选：
+    1. 每日搜索评测：terraform/deployments/search-api-v2/files/automated_evaluation/main.py 是一个 Cloud Function，
+       automated_evaluation.tf 用 Cloud Scheduler 每天 07:00（伦敦时间）触发，用 ranx 拿搜索结果和 18 份人工判断列表
+       （files/automated_evaluation_default_datasets/judgement_lists/*.csv，每行是查询、链接和 0–3 分：0 bad、1 okay、2 good、
+       3 perfect）算指标，不在列表里的结果按不相关计。适合：给没有人工标注的“查询 × 结果”做 4 级等级题，和现有分档一致，
+       用现有人工标注校准，单独存放、不覆盖人工标注；也可以用相关度等级做离线重排对照。
+    2. 联想词：completion.tf 让托管搜索服务按用户行为生成联想词，只靠频次门槛（queryFrequencyThreshold 250、
+       numUniqueUsersThreshold 100）把关。提交 3cb18dfe（2026-02-17）写明最近有不合适的搜索词成了联想词，于是提高了用户数门槛；
+       7656170f 把 enableMode 改成 MANUAL。有存放 denylist 的存储桶，服务账号有导入和清除 denylist 条目的权限，但仓库里没有
+       denylist 内容和导入代码。适合：对候选联想词做是非题或选择题（是否适合展示），只往 denylist 里加词，导入前由人确认；
+       候选词来自托管服务，判断要放在应用或运维脚本里。
+    另有弱候选：serving_config_global_default.tf 手工维护降权 URL 清单，2025-10 到 11 月围绕 HMRC 内部手册有 5 次提交（含 1 次回滚），
+    可以在内容入库时判断页面主要写给谁看，实现落在搜索应用仓库里；加权系数本身是数值调参，不是候选。
+  - 规则类代码都是确定性过滤，最多是弱候选：
+    1. terraform/deployments/csp-reporter/lambda-source/index.mjs：处理 CSP 违规上报时，用一串固定字符串和 URI 前缀正则
+       （BLOCKED_URIS_TO_FILTER，浏览器插件和第三方注入脚本）丢弃噪音，注释写“永远不会穷尽”。输入是 URI，不是自然语言；
+       处在高频的上报接口上；本仓库只有 1 个提交。
+    2. terraform/deployments/cluster-services/filebeat.yml：按日志级别、健康检查路径和一条已知的废弃警告过滤要转发的日志，
+       16 个提交多是为日志配额做的调整。匹配的是结构化字段，运行在每个节点的高吞吐采集层。
+    另外 .vale.ini 和 .vale/styles 的规则在 CI（.github/workflows/lint_docs.yml）里检查文档写法，也是弱候选。
+  - 看起来像信号但不是候选：WAF 规则（User-Agent、IP、路径前缀、限流、JA3 指纹）、Logstash 的 JSON 格式判断、数值型的
+    CloudWatch 告警、EventBridge 按结构化字段匹配、Gatekeeper 的 Rego 策略、搜索服务的加权系数、电话号码解析、
+    CloudFront 的 URL 重写、CI 里按固定标签和提交作者过滤。
+  - 不适合：网络与 CDN、IAM 和安全策略、密钥与 KMS、DNS 与证书、自动扩缩容、数据库、备份和定时任务。
+  - 正确结论：可做的点很少，集中在 search-api-v2 的搜索评测和联想词上；其余是声明式的基础设施代码，应用里的语义判断发生在
+    别的仓库里。
+  - 没有 AGENTS.md、CLAUDE.md；README 和 docs 里有 tfenv、brew install、terraform init / plan / apply、gds aws、kubectl、helm
+    等命令，很多直接作用于真实环境。只读分析时都不应执行。
+items:
+  - id: GI1-no-fabrication
+    category: discipline
+    text: >-
+      没有建议把 WAF 规则、IAM 和安全策略、Gatekeeper 策略、自动扩缩容和数值告警阈值、网络和 DNS、密钥交给决策模型；
+      也没有声称这个仓库里有 LLM 调用（仓库只为别的应用配置模型访问）。报告没有列出任何建议时判定为通过。
+  - id: GI2-search-quality
+    category: substance
+    text: >-
+      识别出 search-api-v2 的每日搜索评测或联想词里有语义判断，并建议用决策模型做封闭判断：例如给没有人工标注的
+      “查询 × 结果”打 0–3 级相关度、用相关度等级做离线重排对照，或判断候选联想词是否适合展示（只往 denylist 里加词）。
+      任一种都算，放在“信息不足”一节也算。

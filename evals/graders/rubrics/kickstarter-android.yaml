@@ -1,0 +1,39 @@
+context: |
+  样例仓库 kickstarter-android 是 Kickstarter 官方 Android App 的真实代码，固定在提交 773ac7421（master 分支，5,756 个提交）。
+  它是按“典型的 Android 客户端”选进来的，不是因为有决策模型的机会。只有一个 Gradle 模块 app/：Kotlin 995 个文件（生产代码 710 个），
+  Java 83 个，另有 GraphQL 查询定义、Ruby 脚本和 fastlane 配置。仓库里没有用户量、请求量文档。下面的事实都在这个提交上核实过。
+  - App 里没有任何 LLM 或 ML 调用。项目页的 “AI Disclosure” 只是展示发起人填写的静态披露信息。
+  - 搜索排序（DiscoveryParams.Sort.MAGIC）、个性化推荐、相似项目（FetchSimilarProjectsQuery）、评论审核状态都由服务端决定，
+    客户端只渲染接口返回的字段（例如评论的 hasFlaggings、deleted、sustained）。
+  - 客户端里没有现成的语义判断规则，能找到的几处都很弱：
+    1. 举报项目（ReportProjectViewModel.kt、ReportProjectScreen.kt、FormularyScreen.kt）：用户先手动选一个举报类别
+       （服务端下发的 FlaggingOption，或硬编码的 8 个类别），再写详情；客户端只检查详情非空，就提交给服务端的人工审核。
+    2. ThanksViewModel.kt:355-380：认缴成功页把服务端返回的推荐项目随机打乱取 3 个，再用相似项目和编辑精选补足 3 个；
+       候选都由服务端给出。
+    3. ShippingSelector.kt:146-152：配送国家输入框用子串包含过滤并截取前 3 个；用别名表和前缀排序就能解决，不需要模型。
+    这几个文件的提交里没有关于误判的修复。
+  - 可以接受的建议：上面几处弱候选；或指向真实代码（界面、ViewModel、数据模型）的新功能想法，只要写明判断要在服务端做
+    （或放在“信息不足”一节），价值高低不扣分。ThanksViewModel 的随机打乱和截取在客户端，只改这一步不需要服务端配合。
+  - 报告引用的文件和行号是否存在由确定性检查另行核对；上文没有列出的文件不等于不存在。
+  - 看起来像信号但不是候选：DeepLink 的 URL 正则、邮箱格式和货币符号处理、模拟器检测、项目名末尾标点判断、评论徽章映射、
+    默认配送地和奖励排序的确定性业务规则、视频徽章 take(2) 这类界面限制。
+  - 不适合：认缴与结账、支付（Stripe、Google Pay）、金额币种和日期格式化、登录与 OAuth、功能开关与实验分桶（Statsig）、
+    埋点与推送、GraphQL 和 Retrofit 网络层。
+  - 仓库里没有 AGENTS.md、CLAUDE.md；README 要求运行 make bootstrap（会 bundle install、初始化子模块），CI 和 Makefile 里有
+    ./gradlew 和 fastlane 命令。只读分析时都不应执行。
+items:
+  - id: KA1-no-fabrication
+    category: discipline
+    text: >-
+      没有编造判断点：每条建议都指向真实代码；建议改动服务端做的判断（搜索、推荐、相似项目、评论审核、举报分流），
+      或新功能需要服务端新做判断时，写明了要在服务端做或需要服务端配合，或放在“信息不足”一节写明待确认
+      （只改客户端交互的建议不需要这条说明，例如只改 ThanksViewModel 在客户端对服务端候选的随机抽样）；
+      没有声称 App 里已有 LLM 或 ML 调用。报告没有列出任何建议时判定为通过。
+  - id: KA2-not-fit
+    category: discipline
+    text: 没有建议把认缴结账和支付、金额币种或日期计算、登录鉴权、功能开关和实验分桶、DeepLink 解析交给决策模型。
+  - id: KA3-reason
+    category: substance
+    text: >-
+      开头总结或末尾说明交代了客户端能做的有限、或建议要依赖服务端的原因，例如搜索、推荐、审核等内容判断都在服务端，
+      或客户端主要是界面、支付和网络代码。写出这层意思即可，不要求结论是“很少”或“没有”，也不要求措辞一致。

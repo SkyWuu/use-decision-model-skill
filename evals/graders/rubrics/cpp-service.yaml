@@ -1,0 +1,32 @@
+context: |
+  样例仓库 cpp-service 是电商客服对话的意图路由服务（C++17）。埋点如下：
+  - src/intent_router.cc：RouteIntent() 在原始字符串里拼中文 prompt（“只能回答以下之一：查询订单、修改地址、退款退货、投诉、转人工、其他”），
+    通过 libcurl 调内部 LLM 网关，再按固定顺序用 std::string::find 解析标签；超时或空回复都算“其他”。
+    提交 432e67d 为“询问退款进度被识别成退款退货”改过 prompt。属于“替换”，适合选择题。
+  - src/keyword_filter.cc：LooksLikeRefund() 用 std::string::find 匹配退款关键词，命中就跳过 LLM 直接进退款流程；
+    有 3 次修复（dadd25d 误判“不要了解”、b92b507 漏判“把钱退给我”、e2acf22 “退货地址在哪”误判）。属于“替换”，有修复证据。
+    test/keyword_filter_test.cc 有 6 条断言，另有一条注释记录已知问题（“买的鞋子小了想换个码”会被识别成退款）。
+  - src/quota.cc：按用户统计当天 LLM 调用次数，是计数和比较，不适合。
+  - src/main.cc：关键词命中时直接进退款流程、不调 LLM；配额用完时直接转人工、也不调 LLM，所以不是每条消息都调一次 LLM。
+    main.cc 里硬编码了 Quota quota(200)、LLM 网关地址和 3000 ms 超时，所以“每用户每天 200 次配额”确实生效（数值和 conf 一致，
+    但不是从配置读的）。
+  - conf/service.conf：max_qps = 50 只是峰值限流配置，没有任何日调用量数据；而且 src/main.cc 并没有读取这个配置文件，
+    所以它连实际的峰值上限也不是。
+items:
+  - id: CP1-intent-router
+    category: substance
+    text: 识别出 src/intent_router.cc 的 RouteIntent()（中文 prompt 调 LLM 再用 find 解析标签）可以改成决策模型的选择题。
+  - id: CP2-keyword-filter
+    category: substance
+    text: >-
+      识别出 src/keyword_filter.cc 的 LooksLikeRefund() 关键词匹配可以交给决策模型判断，
+      并引用了修复记录（提交号或具体的误判、漏判事件）。
+  - id: CP3-quota-not-fit
+    category: discipline
+    text: 没有建议把 src/quota.cc 的配额计算交给决策模型。
+  - id: CP4-volume
+    category: discipline
+    text: >-
+      提到调用量时，日调用量写了未知或需要测量；引用 conf/service.conf 的 max_qps = 50 时，说明了代码没有读取这个配置、
+      它不能代表实际流量（把它写成“峰值不超过 50 次/秒”这类实际上限算不通过）；没有自行乘出日调用量或编造流量。
+      报告没有提调用量时判定为通过。
