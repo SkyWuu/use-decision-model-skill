@@ -16,16 +16,16 @@
 
 **使用 Skill 后整体得分高出约 20%，可以发现更多、更可靠的决策模型应用机会：**
 
-| 仓库 | Claude Code 带 Skill | Claude Code 不带 | Codex 带 Skill | Codex 不带 |
-| --- | ---: | ---: | ---: | ---: |
-| `wikipedia-ios` | 0.87 | 0.73 | 0.97 | 0.70 |
-| `kickstarter-android` | 0.93 | 0.73 | 0.87 | 0.80 |
-| `wechat-app-mall` | 0.93 | 0.90 | 0.93 | 0.83 |
-| `netbox` | 1.00 | 0.80 | 1.00 | 0.83 |
-| `shattered-pixel-dungeon` | 0.89 | 0.79 | 0.89 | 0.71 |
-| `bigquery-etl` | 0.82 | 0.62 | 0.91 | 0.76 |
-| `govuk-infrastructure` | 0.93 | 0.75 | 1.00 | 0.75 |
-| **平均得分** | **0.91** | **0.76** | **0.94** | **0.77** |
+| 仓库 | 使用 Skill | 不使用 |
+| --- | ---: | ---: |
+| `wikipedia-ios` | 0.92 | 0.72 |
+| `kickstarter-android` | 0.90 | 0.77 |
+| `wechat-app-mall` | 0.93 | 0.87 |
+| `netbox` | 1.00 | 0.82 |
+| `shattered-pixel-dungeon` | 0.89 | 0.75 |
+| `bigquery-etl` | 0.87 | 0.69 |
+| `govuk-infrastructure` | 0.96 | 0.75 |
+| **平均得分** | **0.92** | **0.77** |
 
 评测基于以下真实项目仓库的分析：
 
@@ -39,7 +39,7 @@
 
 ## Demo
 
-使用用 Skill 分析 [codex cli](https://github.com/openai/codex/tree/8531184b49bcb160175a84e140b659a83a426df7)的结果示例：
+使用用 Skill 分析 [Codex cli] (https://github.com/openai/codex/tree/8531184b49bcb160175a84e140b659a83a426df7)的结果：
 
 ![use-decision-model 分析 openai/codex 给出的建议](assets/openai-codex-report.png)
 
