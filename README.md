@@ -14,7 +14,7 @@
 
 ## Skill 效果评测
 
-**使用 Skill 后整体得分高出约 20%，可以发现更多、更可靠的决策模型应用机会 ：**
+**使用 Skill 后整体得分高出约 20%，可以发现更多、更可靠的决策模型应用机会：**
 
 | 仓库 | Claude Code 带 Skill | Claude Code 不带 | Codex 带 Skill | Codex 不带 |
 | --- | ---: | ---: | ---: | ---: |
@@ -36,6 +36,12 @@
 - [00-Evan/shattered-pixel-dungeon](https://github.com/00-Evan/shattered-pixel-dungeon)（游戏客户端）
 - [mozilla/bigquery-etl](https://github.com/mozilla/bigquery-etl)（数据仓库 ETL）
 - [alphagov/govuk-infrastructure](https://github.com/alphagov/govuk-infrastructure)（运维与基础设施）
+
+## Demo
+
+使用用 Skill 分析 [codex cli](https://github.com/openai/codex/tree/8531184b49bcb160175a84e140b659a83a426df7)的结果示例：
+
+![use-decision-model 分析 openai/codex 给出的建议](assets/openai-codex-report.png)
 
 ## 目录
 
