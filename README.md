@@ -2,6 +2,8 @@
 
 `use-decision-model` 是一个 Skill，用于分析当前项目可以如何利用 JEV 一类的决策模型（decision model）。
 
+相比传统LLM，决策模型可以有百倍的成本降低和速度提升，带来了巨大的应用可能。
+
 ## 使用方法
 
 支持所有主流 agent/harness，包括但不限于 Claude Code、Codex、Cursor、CodeBuddy、WorkBuddy 及其他支持用户级 Skill 目录的工具。
