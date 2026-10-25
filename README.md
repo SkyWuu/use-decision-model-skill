@@ -1,6 +1,6 @@
 # use-decision-model
 
-`use-decision-model` 是一个 Skill，用于分析当前项目可以如何利用 JEV 一类的决策模型（decision model）。
+`use-decision-model` 是一个 Skill，用于分析当前项目可以如何利用 JEV 一类的决策模型（decision model）。它并不会修改代码，仅作分析。
 
 相比传统LLM，决策模型可以有百倍的成本降低和速度提升，带来了巨大的应用可能。
 
