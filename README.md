@@ -41,7 +41,7 @@
 
 ## Demo
 
-使用用 Skill 分析 [Codex cli] (https://github.com/openai/codex/tree/8531184b49bcb160175a84e140b659a83a426df7)的结果：
+使用用 Skill 分析 [Codex CLI](https://github.com/openai/codex/tree/8531184b49bcb160175a84e140b659a83a426df7) 的结果：
 
 ![use-decision-model 分析 openai/codex 给出的建议](assets/openai-codex-report.png)
 
